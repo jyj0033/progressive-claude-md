@@ -1,140 +1,94 @@
 # Progressive CLAUDE.md Generator
 
-一个 Claude Code Skill，用于生成和维护结构化的渐进式 CLAUDE.md 文件。
+生成和维护**多文件渐进式**项目上下文：默认只让 Agent 加载短 `CLAUDE.md`（L1），架构/规范/运维拆到 `docs/ai/`，需要时再 Read。
+
+**跨 CLI：** 同一套 skill 可在 **Claude Code**、**Grok Build**、Codex、Cursor 及其他支持 Agent Skills 的工具中使用。角色与产物可移植；子代理工具名按宿主适配（见 `references/orchestration.md`）。
+
+## 为什么必须多文件？
+
+多数 Agent 会**整份注入** `CLAUDE.md`。若 L2–L4 写在同一文件里，所谓「按需加载」无效。
+
+```
+✅ 真渐进          ❌ 伪渐进
+CLAUDE.md (L1)     CLAUDE.md
+docs/ai/L2.md        ├── L1
+docs/ai/L3.md        ├── ## L2
+docs/ai/L4.md        ├── ## L3
+                     └── ## L4  ← 仍会全部进上下文
+```
+
+## 落盘结构
+
+```
+project/
+├── CLAUDE.md                      # L1：描述 + 栈 + 命令 + 索引表
+└── docs/ai/
+    ├── architecture.md            # L2
+    ├── conventions.md             # L3
+    └── ops.md                     # L4
+```
 
 ## 特性
 
-- **渐进式披露**: 四层结构 (L1-L4)，按需加载上下文
-- **多 Agent 协作**: Scanner, Planner, Frontend, Backend, QA, Merger
-- **双模式**: 生成模式 + 更新模式
-- **被动学习**: 会话中自动识别 CLAUDE.md 更新点
+- **文件级渐进披露**：L1 自动加载；L2–L4 按任务 Read
+- **跨宿主调度**：`references/orchestration.md`
+  - 语义角色：`read-explore` / `read-plan` / `write-merge`
+  - Claude Code → `Agent` 只读 + 主会话写盘  
+  - Grok Build → `explore`/`plan` + 主会话写盘  
+  - 无子代理 → 主会话串行（产物不变）
+- **模型**：默认跟随当前会话；skill 不写死 model id
+- **生成 / 审计 / 被动学习**
+- **迁移**：单文件伪渐进 → 自动拆成四文件
 
 ## 安装
 
 ```bash
-# 复制到项目目录
-cp -r progressive-claude-md ~/.claude/skills/
+# skills CLI（若可用）
+npx skills add jyj0033/progressive-claude-md -g -y
 
-# 或在项目中创建
-mkdir -p .claude/skills
-cp -r progressive-claude-md .claude/skills/
+# 或拷到各工具 skill 目录（按你本机习惯）
+# Claude Code:  ~/.claude/skills/progressive-claude-md
+# 通用/多工具: ~/.agents/skills/progressive-claude-md
+# Grok 等常 symlink 到上述路径
 ```
 
-## 使用方法
+本地改过规范时，以本机 skill 目录为准（可能新于 GitHub）。
 
-### 生成 CLAUDE.md
+## 使用（任意支持的 CLI）
 
-```bash
-# 进入项目目录
-cd your-project
-
-# 启动 Claude Code
-claude
-
-# 输入触发命令
+```
 帮我创建 CLAUDE.md
-```
-
-### 更新 CLAUDE.md
-
-```bash
-# 主动审计
+初始化项目
 检查 CLAUDE.md 是否需要更新
-
-# 被动学习
-这个项目用 pnpm，不是 npm
-```
-
-### 分析项目结构
-
-```bash
 分析项目结构
 ```
 
-## 四层结构
+## Token 预算
 
-| 层级 | Token 预算 | 触发时机 |
-|------|------------|----------|
-| L1 | ~100 | 每次会话 |
-| L2 | ~300 | 理解结构 |
-| L3 | ~400 | 编写代码 |
-| L4 | ~500+ | 复杂任务 |
+| 层级 | 文件 | 预算 |
+|------|------|------|
+| L1 | CLAUDE.md | ~100 |
+| L2 | docs/ai/architecture.md | ~300 |
+| L3 | docs/ai/conventions.md | ~400 |
+| L4 | docs/ai/ops.md | ~500+ |
 
-## 文件结构
+## Skill 包结构
 
 ```
 progressive-claude-md/
-├── SKILL.md                  # 主技能文件
-├── agents/                   # Agent 提示词
-│   ├── scanner.md           # 扫描器
-│   ├── planner.md           # 规划师
-│   ├── frontend.md          # 前端
-│   ├── backend.md           # 后端
-│   ├── qa.md               # 测试
-│   ├── merger.md            # 合并器
-│   ├── auditor.md          # 审计器
-│   └── learner.md           # 被动学习
-├── templates/                # 模板
-│   └── layer-template.md    # 四层模板
-└── references/               # 参考
-    └── project-types.md     # 项目类型检测
+├── SKILL.md
+├── agents/                 # 可移植角色提示词
+├── templates/layer-template.md
+└── references/
+    ├── orchestration.md    # 跨 CLI 调度（先读）
+    └── project-types.md
 ```
 
-## 更新模式
+## 模型与多 CLI
 
-### 主动审计
-
-```
-用户: "检查 CLAUDE.md 是否需要更新"
-↓
-Scanner 扫描代码库
-↓
-对比现有内容
-↓
-输出差异报告
-↓
-用户确认
-↓
-选择性更新
-```
-
-### 被动学习
-
-```
-用户会话中提及新信息
-↓
-识别 CLAUDE.md 更新点
-↓
-建议更新
-↓
-用户确认
-↓
-自动更新
-```
-
-## 更新范围控制
-
-```
-[1] 仅更新 L1 (快速开始)
-[2] 更新 L1 + L2 (概览)
-[3] 更新 L3 (规范)
-[4] 更新 L4 (细节)
-[5] 全部更新
-[6] 选择具体部分
-```
-
-## 触发关键词
-
-| 关键词 | 动作 |
-|--------|------|
-| `创建 CLAUDE.md` | 生成新文件 |
-| `优化 CLAUDE.md` | 分析并改进 |
-| `更新 CLAUDE.md` | 审计后更新 |
-| `检查 CLAUDE.md` | 主动审计 |
-| `初始化项目` | 生成初始化 |
-| `分析项目结构` | 仅分析 |
-
-## 设计文档
-
-- 设计文档: `docs/superpowers/specs/2026-07-22-progressive-claude-md-design.md`
-- 实现计划: `docs/superpowers/plans/2026-07-22-progressive-claude-md-plan.md`
+| 做法 | 说明 |
+|------|------|
+| 默认 | 子任务 = 当前会话模型 |
+| Claude Code | 用会话 `/model` 或 Agent 文档支持的参数；用户点名再改 |
+| Grok Build | spawn 默认不传 model；可用 persona 等宿主配置 |
+| 本 skill | **不**内置具体 model slug，避免过期与绑死厂商 |

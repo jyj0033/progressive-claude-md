@@ -1,35 +1,24 @@
 # Layer Template Reference
 
-四层结构的模板参考。生成 CLAUDE.md 时按需使用。
+多文件渐进结构模板。**禁止**把 L2–L4 写进同一个 CLAUDE.md。
 
-## ⚠️ 重要：渐进式披露原则
-
-**L1 = 简洁概要 | L2-L4 = 详细参考**
+## 落盘布局
 
 ```
-# Project Name
-[L1: 一句话描述 + Tech Stack + 关键命令]
-
-## L2: 架构
-[L2: 详细目录结构]
-
-## L3: 规范
-[L3: 详细代码规范]
-
-## L4: 细节
-[L4: 测试 + 部署 + 约束]
+CLAUDE.md                      # L1 only
+docs/ai/architecture.md        # L2
+docs/ai/conventions.md         # L3
+docs/ai/ops.md                 # L4
 ```
-
-**不是**把所有内容都放在文件开头！
 
 ---
 
-## L1: Quick Start Template
+## L1: CLAUDE.md
 
 ```markdown
 # [Project Name]
 
-[One sentence describing what this project does]
+[One sentence]
 
 ## Tech Stack
 - Frontend: [framework]
@@ -39,19 +28,29 @@
 
 ## Quick Commands
 ```bash
-[install command]
-[dev command]
-[build command]
-```
+[install]
+[dev]
+[build]
 ```
 
-**使用场景：** 项目初始化、会话开始、快速了解
+## Progressive Docs（按需 Read，勿整份粘贴进 CLAUDE.md）
+
+| 何时 | 文件 |
+|------|------|
+| 理解结构 / 改模块 / 数据流 | `docs/ai/architecture.md` |
+| 写代码 / 命名 / API 约定 | `docs/ai/conventions.md` |
+| 测试 / 部署 / 环境 / 坑 | `docs/ai/ops.md` |
+
+**指令给 Agent：** 仅在当前任务需要时用 Read 打开上表路径。
+```
 
 ---
 
-## L2: Architecture Template
+## L2: docs/ai/architecture.md
 
 ```markdown
+# Architecture (L2)
+
 ## Project Structure
 
 ```
@@ -63,124 +62,78 @@
 | Module | Purpose |
 |--------|---------|
 | [path] | [description] |
-| [path] | [description] |
 
 ## Data Flow
 
-[How data flows through the system - one paragraph]
+[How data flows - one paragraph]
 ```
-
-**使用场景：** 理解项目结构、理解模块关系
 
 ---
 
-## L3: Code Conventions Template
+## L3: docs/ai/conventions.md
 
 ```markdown
-## Coding Standards
+# Conventions (L3)
 
-### Naming Conventions
+## Naming Conventions
 - Components: PascalCase
-- Utils/Helpers: camelCase
+- Utils: camelCase
 - Constants: SCREAMING_SNAKE_CASE
-- Types/Interfaces: PascalCase with I prefix (optional)
 
-### File Organization
+## File Organization
 - One component per file
-- Colocation: test files beside source (e.g., Button.tsx + Button.test.tsx)
-- Barrel files (index.ts) for re-exports
+- Colocation for tests when present
 
-### API Patterns
-- RESTful conventions: GET/POST/PUT/DELETE
-- Error response format: `{ error: string, code: string }`
-- Request validation with [library]
+## API Patterns
+- RESTful: GET/POST/PUT/DELETE
+- Error: `{ error: string }`
 ```
-
-**使用场景：** 编写代码、代码审查
 
 ---
 
-## L4: Deep Details Template
+## L4: docs/ai/ops.md
 
 ```markdown
+# Ops (L4)
+
 ## Testing
+- Framework: [Vitest/...]
+- Commands: `npm test`
 
-### Framework
-- Unit: [Jest/Vitest/Mocha/etc.]
-- E2E: [Playwright/Cypress/Selenium]
-- Integration: [library]
-
-### Patterns
-- [testing patterns used]
-- Mocking strategy: [approach]
-
-### Commands
+## Run / Deploy
 ```bash
-[unit test command]
-[e2e test command]
-[coverage command]
+[build]
+[start]
 ```
 
-## Deployment
-
-### Build
-```bash
-[build command]
-```
-
-### Deploy
-```bash
-[deploy command]
-```
-
-### Environment Setup
-1. [step 1]
-2. [step 2]
-3. [step 3]
+## Environment
+| Var | Meaning | Default |
+|-----|---------|---------|
+| ... | ... | ... |
 
 ## Constraints & Gotchas ⚠️
-
-### Environment
-- Node version: [version]
-- Required env vars:
-  - `DATABASE_URL`: [description]
-  - `API_KEY`: [description]
-- Required tools: [tools]
-
-### Known Issues
-- [issue 1]
-- [issue 2]
-
-### Limitations
-- [limitation 1]
-- [limitation 2]
+- Node version: ...
+- Known issues: ...
 ```
 
-**使用场景：** 复杂任务、测试、部署、问题排查
+---
+
+## Token Budget
+
+| Layer | File | Target | Hard Limit |
+|-------|------|--------|------------|
+| L1 | CLAUDE.md | ~100 | 150 |
+| L2 | architecture.md | ~300 | 400 |
+| L3 | conventions.md | ~400 | 500 |
+| L4 | ops.md | ~500+ | 800 |
 
 ---
 
-## Layer Token Budget
-
-| Layer | Target | Hard Limit | Content |
-|-------|--------|------------|---------|
-| L1 | ~100 | 150 | 一句话描述 + 技术栈 + 命令 |
-| L2 | ~300 | 400 | 目录结构 + 核心模块 + 数据流 |
-| L3 | ~400 | 500 | 命名规范 + 代码约定 + API 模式 |
-| L4 | ~500+ | 800 | 测试 + 部署 + 约束 |
-
----
-
-## Constraints Placement Guide
+## Placement Guide
 
 | Type | L1 | L2 | L3 | L4 |
 |------|----|----|----|----|
-| 环境要求 | ✓ | | | ✓ |
-| 配置依赖 | | | | ✓ |
-| 命名规范 | | | ✓ | |
-| 代码约定 | | | ✓ | |
-| API 模式 | | | ✓ | |
-| 测试命令 | | | | ✓ |
-| 部署命令 | | | | ✓ |
-| 已知问题 | | | | ✓ |
-| 限制说明 | | | | ✓ |
+| 一句话/栈/命令 | ✓ | | | |
+| 目录/模块/数据流 | | ✓ | | |
+| 命名/API 约定 | | | ✓ | |
+| 测试/部署/环境/坑 | | | | ✓ |

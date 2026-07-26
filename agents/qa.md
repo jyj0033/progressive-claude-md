@@ -60,5 +60,7 @@ Scanner + Planner results
 ## Constraints
 
 - Max 350 words output
-- Focus on L3 + L4 content (conventions, testing, constraints)
+- Focus on L3 + L4 content → target files `docs/ai/conventions.md` + `docs/ai/ops.md`
 - Include actionable information (actual commands, actual patterns)
+- Do not instruct Merger to append testing/ops into CLAUDE.md
+- **只读**：能力标签 `read-explore`；禁止写盘（宿主映射见 `references/orchestration.md`）

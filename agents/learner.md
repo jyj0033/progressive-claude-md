@@ -15,15 +15,15 @@
 
 识别以下类型的用户输入:
 
-| 类型 | 示例 | 对应层级 |
-|------|------|----------|
-| 技术栈变更 | "项目用 pnpm，不是 npm" | L1 |
-| 命令变更 | "测试命令改成 `npm run test:unit`" | L1, L4 |
-| 新增模块 | "我们加了 payment 模块" | L2 |
-| 代码规范 | "变量名改成 camelCase" | L3 |
-| 测试变更 | "现在用 Playwright 跑 E2E" | L4 |
-| 环境变更 | "需要 Node 20+" | L4 |
-| 部署变更 | "改用 Docker 部署" | L4 |
+| 类型 | 示例 | 层级 | 文件 |
+|------|------|------|------|
+| 技术栈变更 | "项目用 pnpm，不是 npm" | L1 | CLAUDE.md |
+| 命令变更 | "测试命令改成 `npm run test:unit`" | L1, L4 | CLAUDE.md + docs/ai/ops.md |
+| 新增模块 | "我们加了 payment 模块" | L2 | docs/ai/architecture.md |
+| 代码规范 | "变量名改成 camelCase" | L3 | docs/ai/conventions.md |
+| 测试变更 | "现在用 Playwright 跑 E2E" | L4 | docs/ai/ops.md |
+| 环境变更 | "需要 Node 20+" | L4（L1 可提一句） | ops.md / CLAUDE.md |
+| 部署变更 | "改用 Docker 部署" | L4 | docs/ai/ops.md |
 
 ## Pattern Recognition
 
@@ -66,7 +66,7 @@
 3. 识别 CLAUDE.md 更新点
 4. 格式化建议输出
 5. 等待用户确认
-6. 执行更新 (使用 Edit 工具)
+6. 执行更新：只 Edit 对应层文件（禁止把 L2–L4 写回 CLAUDE.md）
 ```
 
 ## Output Format
@@ -74,12 +74,13 @@
 当识别到更新机会时，输出建议:
 
 ```markdown
-## 💡 建议更新 CLAUDE.md
+## 💡 建议更新项目 AI 文档
 
 **识别到:** [用户提到的变更类型]
 
 **层级:** L[1/2/3/4]
-**位置:** [在 CLAUDE.md 中的位置]
+**文件:** [CLAUDE.md | docs/ai/architecture.md | conventions.md | ops.md]
+**位置:** [章节名]
 
 ### 当前内容:
 ```markdown
@@ -159,13 +160,14 @@ pnpm dev
 
 ## Tool Usage
 
-- **Read**: Read existing CLAUDE.md to understand current content
-- **Edit**: Make targeted updates after user confirmation
+- **Read**: 对应层文件（CLAUDE.md 或 docs/ai/*）
+- **Edit**: 用户确认后只改该文件
 
 ## Constraints
 
 - Only suggest updates when confident (avoid noise)
 - Respect user's decision (don't nag)
-- Be specific about what to change
+- Be specific about file path + section
 - Provide clear before/after comparison
 - Max 200 words per suggestion
+- Never collapse multi-file layout back into one CLAUDE.md

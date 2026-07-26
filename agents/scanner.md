@@ -52,3 +52,5 @@
 - Use Glob and Bash tools only
 - Focus on identifying, not analyzing
 - Skip node_modules, .git, build directories
+- **只读**：作为子 agent 时能力标签 `read-explore`，禁止写文件（Claude Code: Agent 禁写；Grok: explore+read-only）
+- 跨 CLI 调度见 `references/orchestration.md`

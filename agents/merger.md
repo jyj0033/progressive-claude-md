@@ -2,198 +2,163 @@
 
 ## Role
 
-合并所有 agent 的输出，生成**渐进式分层**的四层 CLAUDE.md。
+合并各 agent 输出，**写入 4 个独立文件**（真·渐进式披露）。
 
-## ⚠️ 关键原则：渐进式披露
+## 谁来执行 Merger
 
-**不是把所有内容写在一起！** 必须分层组织：
+- **默认：主会话（编排器）** 执行本角色并写盘（Claude Code / Grok / 其他 CLI 皆然）  
+- **不要** 用只读探索类子 agent 写文件  
+- 仅当主上下文过长时，可开**可写**通用子 agent，prompt 贴本文件 + 全部 Analysis 摘要（宿主参数见 `orchestration.md` §4）  
+- 跨 CLI 调度见 `references/orchestration.md`
 
-### 正确的分层结构
+## ⚠️ 硬性规则
 
-```markdown
-# Project Name
-
-一句话描述项目。
-
-## Tech Stack
-- Frontend: [框架]
-- Backend: [框架]
-
-## Quick Commands
-```bash
-npm install && npm run dev
-```
-
-<!-- 详细参考见下方，按需加载 -->
-
-## L2: 技术栈与架构
-
-[详细的目录结构]
-
-## L3: 代码规范
-
-[详细的命名规范]
-
-## L4: 深入细节
-
-[测试、部署、约束]
-```
-
-### ❌ 错误的结构（不要这样做）
-
-```markdown
-# Project Name
-
-[所有详细内容都放在这里...]
-[所有详细内容都放在这里...]
-[所有详细内容都放在这里...]
-```
+1. **禁止** 生成「单文件内含 L1–L4 全文」的 `CLAUDE.md`
+2. **必须** 产出：
+   - `./CLAUDE.md` — 仅 L1 + Progressive Docs 索引
+   - `./docs/ai/architecture.md` — L2
+   - `./docs/ai/conventions.md` — L3
+   - `./docs/ai/ops.md` — L4
+3. 若目标项目已有伪渐进单文件，先拆分再写（见 SKILL Migration）
+4. 写盘前确认 FE/BE/QA 等子代理已结束且均为只读分析结果
 
 ## Responsibilities
 
-1. 接收所有 agent 的分析结果
-2. 按四层结构组织内容
-3. **L1 必须简洁**（约 100 tokens）
-4. 详细规范放在 L2-L4
-5. 支持部分更新（选择性更新特定层级）
+1. 接收 Scanner / Planner / Frontend / Backend / QA 结果
+2. 按层分配内容到对应路径
+3. L1 必须极短（~100 tokens，硬限 150）
+4. 支持按层部分更新（只改相关文件）
+5. 创建 `docs/ai/` 目录（若不存在）
 
 ## Token Budget
 
-| Layer | Target | Hard Limit |
-|-------|--------|------------|
-| L1 | ~100 | 150 |
-| L2 | ~300 | 400 |
-| L3 | ~400 | 500 |
-| L4 | ~500+ | 800 |
+| Layer | File | Target | Hard Limit |
+|-------|------|--------|------------|
+| L1 | CLAUDE.md | ~100 | 150 |
+| L2 | docs/ai/architecture.md | ~300 | 400 |
+| L3 | docs/ai/conventions.md | ~400 | 500 |
+| L4 | docs/ai/ops.md | ~500+ | 800 |
 
-## L1 内容（必须简洁）
-
-L1 应该只包含：
-- 项目一句话描述
-- 技术栈（Frontend / Backend / Database）
-- 关键命令（install, dev, build）
-- **不要**在这里写详细规范！
-
-## L2-L4 内容（详细参考）
-
-L2-L4 包含详细规范，但用 `<!-- 注释 -->` 分隔让 AI 知道这是按需加载的内容。
-
-## Output Format
-
-### 渐进式分层格式 ✅
+## Output: CLAUDE.md（L1 only）
 
 ```markdown
 # [Project Name]
 
-一句话描述项目是做什么的。
+一句话描述。
 
 ## Tech Stack
-- Frontend: [框架]
-- Backend: [框架]
-- Database: [数据库]
-- Package Manager: [npm/yarn/pnpm]
+- Frontend: ...
+- Backend: ...
+- Database: ...
+- Package Manager: ...
 
 ## Quick Commands
 ```bash
-npm install
-npm run dev
-npm run build
+...
 ```
 
-<!-- L2+: 详细参考，按需加载 -->
+## Progressive Docs（按需 Read，勿整份粘贴进 CLAUDE.md）
 
-## L2: 技术栈与架构
+| 何时 | 文件 |
+|------|------|
+| 理解结构 / 改模块 / 数据流 | `docs/ai/architecture.md` |
+| 写代码 / 命名 / API 约定 | `docs/ai/conventions.md` |
+| 测试 / 部署 / 环境 / 坑 | `docs/ai/ops.md` |
 
-### Project Structure
+**指令给 Agent：** 仅在当前任务需要时用 Read 打开上表路径；不要把 L2–L4 复制进本文件。
 ```
-src/
-├── components/
-├── pages/
-└── ...
-```
 
-### Core Modules
+L1 **不得**包含：目录树全文、命名规范、API 细则、测试说明、环境变量表。
 
+## Output: docs/ai/architecture.md（L2）
+
+```markdown
+# Architecture (L2)
+
+## Project Structure
+[tree, max 3 levels]
+
+## Core Modules
 | Module | Purpose |
 |--------|---------|
-| auth/ | 认证相关 |
-| api/ | API 接口 |
+| ... | ... |
 
-### Data Flow
-[数据流向说明]
+## Data Flow
+[一段话]
+```
 
+## Output: docs/ai/conventions.md（L3）
+
+```markdown
+# Conventions (L3)
+
+## Naming Conventions
+...
+
+## File Organization
+...
+
+## API Patterns
+...
+
+## Backend / Frontend Conventions
+...
+```
+
+## Output: docs/ai/ops.md（L4）
+
+```markdown
+# Ops (L4)
+
+## Testing
+...
+
+## Run / Deploy
+...
+
+## Environment
+...
+
+## Constraints & Gotchas ⚠️
+...
+```
+
+## Write Sequence
+
+1. Ensure `docs/ai/` exists
+2. Write `docs/ai/architecture.md`
+3. Write `docs/ai/conventions.md`
+4. Write `docs/ai/ops.md`
+5. Write short `CLAUDE.md` last（索引路径必须与已写文件一致）
+
+## Partial Update
+
+| 选项 | 改哪些文件 |
+|------|------------|
+| [1] 仅 L1 | CLAUDE.md |
+| [2] L1+L2 | CLAUDE.md + architecture.md |
+| [3] L3 | conventions.md |
+| [4] L4 | ops.md |
+| [5] 全部 | 四个文件 |
+
+## Anti-Patterns ❌
+
+```markdown
+# 禁止：CLAUDE.md 里这样写
+## L2: 技术栈与架构
 ## L3: 代码规范
-
-### Naming Conventions
-- Components: PascalCase
-- Utils: camelCase
-- Constants: SCREAMING_SNAKE_CASE
-
-### File Organization
-- One component per file
-- Test files beside source
-
-### API Patterns
-- RESTful conventions
-- Error response format: `{ error: string, code: string }`
-
 ## L4: 深入细节
-
-### Testing
-- Framework: Vitest
-- Commands: `npm test`
-
-### Deployment
-```bash
-npm run build
-npm run deploy
+（正文还在 CLAUDE.md）
 ```
-
-### Constraints & Gotchas ⚠️
-
-#### Environment
-- Node 18+
-- 需要配置 .env 文件
-
-#### Known Issues
-- [已知问题]
-```
-
-### ❌ 错误格式：全部堆在一起
 
 ```markdown
-# Project
-
-这是一个详细的项目描述...
-[所有详细内容都写在这里，没有层次]
+# 禁止：只有索引没有实体文件
+## Progressive Docs
+| ... | docs/ai/architecture.md |  # 但文件不存在
 ```
-
-**遇到这种结构要拆分！**
-
-## Partial Update Mode
-
-When user selects specific layers to update:
-
-```markdown
-## 更新选项
-
-[1] 仅更新 L1 - 新增技术栈、命令变更
-[2] 更新 L1 + L2 - 新增模块、重构
-[3] 更新 L3 - 代码约定变化
-[4] 更新 L4 - 测试、部署、约束变化
-[5] 全部更新
-[6] 选择具体部分
-```
-
-Read existing CLAUDE.md, identify which sections to update based on user selection.
 
 ## Constraints
 
-- Respect token budgets per layer:
-  - L1: ~100 tokens (max 150)
-  - L2: ~300 tokens (max 400)
-  - L3: ~400 tokens (max 500)
-  - L4: ~500+ tokens (max 800)
-- Progressive disclosure: L1 most important
-- Keep each layer independently useful
-- Output clean Markdown, no extra commentary
+- 每个文件独立有用；L2–L4 不依赖读完 L1 才能理解标题含义（可重复项目名）
+- 输出干净 Markdown
+- 落盘后向用户列出 4 个路径

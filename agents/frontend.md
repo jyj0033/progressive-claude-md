@@ -58,3 +58,5 @@ Scanner + Planner results
 - Max 250 words output
 - Focus on L1 + L2 content (tech stack, structure, commands)
 - Identify framework-specific patterns
+- Material is for Merger to place into `CLAUDE.md` (L1 stack/commands) and `docs/ai/architecture.md` + conventions snippets — **not** a single mega CLAUDE.md
+- **只读**：能力标签 `read-explore`；禁止写盘（宿主映射见 `references/orchestration.md`）
