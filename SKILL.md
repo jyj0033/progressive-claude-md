@@ -1,28 +1,26 @@
 ---
 name: progressive-claude-md
-description: Create, audit, or safely update Claude Code project instructions using evidence from the repository and real progressive loading through concise root CLAUDE.md files, path-scoped rules, nested CLAUDE.md files, and task skills. Use when the user explicitly asks to create, generate, optimize, audit, check, update, or maintain CLAUDE.md or .claude/rules files, including 创建、生成、优化、检查、审计、更新或维护 CLAUDE.md. Do not trigger for ordinary codebase exploration unless the request connects that analysis to Claude Code instructions.
-argument-hint: "[generate|audit|update|analyze] [scope]"
+description: Generate and safely maintain progressively loaded Claude Code project instructions using repository evidence, concise root CLAUDE.md files, path-scoped rules, nested CLAUDE.md files, and task skills. Use when the user asks to create or maintain progressive CLAUDE.md or .claude/rules files, including 创建、生成、优化、检查或维护 CLAUDE.md. Do not trigger for ordinary codebase exploration unless the request connects that analysis to Claude Code instructions.
+argument-hint: "[check] [scope]"
 ---
 
 # Progressive CLAUDE.md
 
 Build high-signal Claude Code instructions without treating headings in one large file as lazy-loaded layers.
 
-Requested operation and scope: `$ARGUMENTS`
+Requested optional command and scope: `$ARGUMENTS`
 
-## Resolve intent first
+## Use one public workflow
 
-Use the user's verb as the authorization boundary. Repository state never expands it.
+The default invocation builds the progressive instruction layout. `check` is the only public read-only command.
 
-| Intent | Result | Write files |
-|---|---|---|
-| analyze, inspect structure | Evidence report | No |
-| audit, check | Drift report and proposed diff | No |
-| generate, create | New instruction layout | Yes, within the requested project |
-| update, optimize, maintain | Minimal patch to existing instructions | Yes, within the requested scope |
-| remember, record this | Targeted instruction proposal or patch | Only when the user explicitly names CLAUDE.md/project instructions |
+- If the first argument is exactly `check`, use check mode. Treat the remaining arguments as the optional scope, validate the existing progressive layout, report findings and a proposed manifest, and do not write files.
+- Otherwise use build mode and treat all arguments as the optional scope. When no instruction artifacts exist, create the smallest useful progressive layout. When artifacts already exist, preserve human-authored content and integrate only the evidence-backed changes needed for that layout.
+- An empty argument list means build mode at the repository root.
 
-If intent is ambiguous, remain read-only and present the proposed target. Never create a file merely because it is missing.
+Do not expose generation, audit, update, or analysis as separate command modes. They are internal steps of build or check. A natural-language request that explicitly prohibits writes uses check mode.
+
+Fail closed when the first argument is a legacy command word: `generate`, `update`, `audit`, or `analyze`. Do not scan or write. Return a migration hint: omit `generate` or `update` to use the default build, and replace `audit` or `analyze` with `check`. This prevents an old read-only invocation from being interpreted as a writable scope.
 
 ## Discover instruction scope
 
@@ -42,35 +40,32 @@ Read [Claude loading model](references/claude-loading.md) before choosing output
 
 ## Orchestrate adaptively
 
-All plugin subagents are read-only. Give every invocation the repository root, mode, user-approved scope, relevant existing instructions, and upstream structured results. Do not assume a subagent can see the parent conversation.
+All plugin subagents are read-only. Give every invocation the repository root, `build` or `check` mode, user-approved scope, relevant existing instructions, and upstream structured results. Do not assume a subagent can see the parent conversation.
 
 Use the main-thread fast path for a single-fact correction, one narrow instruction file, or a small repository whose evidence can be inspected without duplicating work. Apply the same evidence and validation gates. Use the multi-agent paths below only when independent scopes justify their coordination cost.
 
-### Non-trivial generation
+### Default build
 
-1. Invoke `progressive-claude-md:scanner`.
-2. Invoke `progressive-claude-md:planner` with the scanner result.
-3. Run only the analyzers selected by the planner, in parallel when independent:
+1. Parse existing instruction artifacts without normalizing or rewriting them.
+2. Invoke `progressive-claude-md:scanner`.
+3. Invoke `progressive-claude-md:planner` with the scanner result.
+4. Run only the analyzers selected by the planner, in parallel when independent:
    - `progressive-claude-md:frontend-analyzer`
    - `progressive-claude-md:backend-analyzer`
    - `progressive-claude-md:qa-analyzer`
-4. Invoke `progressive-claude-md:merger` with all available results and the approved output scope.
-5. Invoke `progressive-claude-md:validator` on the complete candidate before writing.
+5. If instruction artifacts already exist, invoke `progressive-claude-md:auditor` internally to identify relevant drift and placement issues.
+6. Invoke `progressive-claude-md:merger` in build mode with all available results and the approved output scope.
+7. Invoke `progressive-claude-md:validator` on the complete candidate before the main conversation writes anything.
 
 For a small single-domain repository, skip irrelevant analyzers. Do not spawn an agent whose status would predictably be `not_applicable`.
 
-### Audit or update
+### Optional check
 
 1. Parse existing instruction files without normalizing or rewriting them.
 2. Invoke `scanner`, then route only affected domains to their analyzers.
 3. Invoke `auditor` with the current documents, repository evidence, and analyzer results.
-4. Invoke `merger` in proposal/patch mode, then invoke `validator` with both the original evidence ledger and the candidate.
-5. For audit, return the validated audit report and proposed diff without writing.
-6. For update, apply only validated operations within the authorized sections.
-
-### Record a newly stated fact
-
-Invoke `progressive-claude-md:change-detector` only during an explicit instruction-maintenance task. Distinguish current facts from questions, negations, hypotheticals, quotations, and future plans. Verify repository-observable claims before proposing a patch.
+4. Invoke `merger` in check mode, then invoke `validator` with both the original evidence ledger and the candidate.
+5. Return the validated findings and proposed manifest without writing.
 
 If a named plugin agent is unavailable, perform that bounded step inline with the same contract; do not invent its result.
 
@@ -115,7 +110,7 @@ Use [instruction templates](templates/layer-template.md) as neutral layouts, not
 
 Reject candidates that contain unsupported claims, unresolved conflicts, secrets, stale commands, unexpanded placeholders, duplicated rules, or edits outside the authorized scope.
 
-After writing:
+In check mode, return the validated status and proposed manifest without writing. After a build writes files:
 
 1. Read back every changed file.
 2. Show the final file list and concise semantic diff.

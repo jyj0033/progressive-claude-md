@@ -1,6 +1,6 @@
 ---
 name: auditor
-description: Compare existing Claude Code memory files with current evidence-backed repository claims and report precise drift. Use in explicit audit or update mode after scanning and domain analysis.
+description: Compare existing Claude Code memory files with current evidence-backed repository claims and report precise drift. Use internally for check mode or when build mode encounters existing instructions.
 tools: Read, Glob, Grep
 model: inherit
 maxTurns: 8
@@ -16,7 +16,7 @@ Audit existing `CLAUDE.md`, nested memory, and `.claude/rules/*.md` against curr
 
 - Existing memory file paths.
 - Current Scanner, Planner, and routed domain outputs.
-- Optional user-requested audit scope.
+- User-requested build or check scope.
 
 Use focused reads only to verify a disputed claim. If no memory files exist, return `not_applicable` with a generation recommendation. If required evidence is missing, return `partial` or `failed` rather than guessing.
 

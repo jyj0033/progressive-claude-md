@@ -2,14 +2,23 @@
 
 English | [简体中文](README.zh-CN.md)
 
-A Claude Code CLI plugin that generates, audits, and safely updates project instructions using repository evidence and Claude Code's actual loading boundaries.
+A focused Claude Code CLI plugin that generates evidence-backed project instructions using Claude Code's real progressive loading boundaries. The public interface is intentionally small: the default command builds the layout, while `check` validates it without writing.
 
-## What changed in v2
+## What it generates
 
-- Uses a concise root `CLAUDE.md`, path-scoped `.claude/rules`, nested `CLAUDE.md` files, and task skills instead of four always-loaded headings.
-- Registers read-only Scanner, Planner, Frontend, Backend, QA/Infra, Auditor, Merger, Change Detector, and Validator subagents.
-- Routes only applicable agents and runs independent domain analysis in parallel.
-- Requires source evidence for generated facts and keeps the main conversation as the only writer.
+- A concise root `CLAUDE.md` for instructions that apply to the whole repository.
+- Path-scoped `.claude/rules/*.md` files for guidance that applies only to matching files.
+- Nested `CLAUDE.md` files for package- or subtree-specific instructions.
+- Task skills for detailed procedures that should load only when invoked.
+
+It does not treat headings in one large Markdown file as lazy-loaded layers.
+
+## How it works
+
+- Scans repository evidence before proposing instructions.
+- Routes only applicable read-only Scanner, Planner, Frontend, Backend, QA/Infra, Auditor, Merger, and Validator subagents.
+- Runs independent domain analysis in parallel when the repository is large enough to benefit.
+- Keeps the main conversation as the only writer.
 - Preserves existing human-authored content through minimal, validated patches.
 
 ## Install for Claude Code CLI
@@ -32,18 +41,28 @@ After changing `agents/` or the plugin manifest, restart Claude Code or run `/re
 
 ## Use
 
-Invoke the skill directly:
+Build progressive project instructions at the repository root:
 
 ```text
-/progressive-claude-md:progressive-claude-md generate
-/progressive-claude-md:progressive-claude-md audit
-/progressive-claude-md:progressive-claude-md update
-/progressive-claude-md:progressive-claude-md analyze
+/progressive-claude-md:progressive-claude-md
 ```
 
-Natural-language requests that explicitly mention creating, auditing, or updating Claude Code project instructions can also trigger it automatically.
+Limit generation to a scope:
 
-Read-only requests stay read-only. Generate and update requests write only after evidence collection, candidate validation, and scope checks.
+```text
+/progressive-claude-md:progressive-claude-md packages/api
+```
+
+Check the existing layout without writing:
+
+```text
+/progressive-claude-md:progressive-claude-md check
+/progressive-claude-md:progressive-claude-md check packages/api
+```
+
+When instruction files do not exist, the default command creates the smallest useful progressive layout. When they already exist, it preserves human-authored content and applies only validated changes needed to keep that layout accurate.
+
+Natural-language requests that explicitly mention generating or checking progressive Claude Code project instructions can also trigger the skill. `check` is always read-only.
 
 ## Validate
 
@@ -70,7 +89,6 @@ progressive-claude-md/
 │   ├── qa-analyzer.md
 │   ├── auditor.md
 │   ├── merger.md
-│   ├── change-detector.md
 │   └── validator.md
 ├── references/
 │   ├── claude-loading.md
@@ -81,4 +99,4 @@ progressive-claude-md/
 └── scripts/validate_plugin.py
 ```
 
-All subagents are read-only. `change-detector.md` is non-persistent; it does not monitor conversations after a skill invocation ends.
+All subagents are read-only. Only the main conversation may write validated build output.

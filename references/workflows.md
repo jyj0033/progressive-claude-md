@@ -1,30 +1,29 @@
-# Workflows, Orchestration, and Safe Updates
+# Generation Workflow and Safe Reconciliation
 
-Read this reference for mode selection, multi-agent routing, audits, generation, and updates.
+Read this reference for the default generation workflow, the optional read-only check, agent routing, and safe handling of existing instruction files.
 
 ## Contents
 
-- [Intent and discovery](#intent-matrix)
-- [Evidence and agent routing](#evidence-and-privacy-boundary)
-- [Unified contract and merge policy](#unified-agent-contract)
-- [Safe updates and audit output](#safe-update-algorithm)
+- [Public interface](#public-interface)
+- [Discovery order](#discovery-order)
+- [Evidence and privacy boundary](#evidence-and-privacy-boundary)
+- [Agent routing](#choose-main-thread-or-subagents)
+- [Merge policy](#planner-and-merge-policy)
+- [Existing-file reconciliation](#existing-file-reconciliation)
 - [Independent validation](#independent-validation)
 
-## Intent Matrix
+## Public Interface
 
-| User intent | Allowed result |
-|---|---|
-| Analyze project structure | Read-only findings; do not create or edit instruction files |
-| Audit/check CLAUDE.md | Read-only audit and proposed changes unless the user also asks to update |
-| Generate/create/init | Propose a file manifest, then create the requested project instruction artifacts |
-| Update/optimize/maintain | Audit first, then apply the smallest evidence-backed patch |
-| Add a stated fact | Check evidence, conflicts, and scope, then update the narrowest appropriate artifact |
+| Invocation | Result | Write files |
+|---|---|---|
+| Default, optionally followed by a scope | Build the smallest evidence-backed progressive instruction layout | Yes, after validation and only within scope |
+| `check`, optionally followed by a scope | Validate the existing layout and return findings plus a proposed manifest | No |
 
-A request to analyze or audit does not authorize writes. Do not claim to listen passively after the skill finishes: skills have no persistent background lifecycle. During an active invocation, act only on an explicit update request or report a suggested change.
+An empty argument list builds at the repository root. `check` is the only public read-only command. Generation, inspection, reconciliation of existing files, and validation are internal phases rather than separate user-facing modes. A request that explicitly prohibits writes is treated as `check`.
 
 ## Discovery Order
 
-Inspect applicable sources before proposing new files:
+Inspect applicable sources before proposing files:
 
 1. Project entrypoint: `./CLAUDE.md` or `./.claude/CLAUDE.md`.
 2. Personal project instructions: `./CLAUDE.local.md`.
@@ -47,19 +46,20 @@ Managed and user-level instructions may matter for conflict detection but are ou
 
 ## Choose Main Thread or Subagents
 
-Use the main thread for a small repository, one narrow instruction file, a single-fact correction, or work whose branches would inspect the same files. Use specialized subagents only when scopes are independently useful and the repository is large enough to justify coordination.
+Use the main thread for a small repository, one narrow instruction file, or work whose branches would inspect the same files. Use specialized subagents only when scopes are independently useful and the repository is large enough to justify coordination.
 
 ```text
-Main: resolve intent, root, exclusions, and existing instructions
+Main: resolve build/check, root, scope, exclusions, and existing instructions
   -> Scanner: gather evidence only
   -> Planner/Router: choose artifacts and applicable branches
   -> [Frontend] [Backend] [QA/Infra]  (applicable branches in parallel)
-  -> Merger: reconcile claims and prepare a candidate minimal patch
+  -> Auditor: compare existing instructions when present or during check
+  -> Merger: reconcile claims and prepare a candidate manifest or minimal patch
   -> Independent validator: verify evidence, scope, syntax, and duplication
-  -> Main thread only: preview/apply according to intent, then read back
+  -> Main thread only: write in build mode or report in check mode, then read back
 ```
 
-Scanner precedes routing. Frontend, Backend, and QA/Infra are peers, not mandatory sequential stages. Every subagent, including merger and validator, is read-only. Only the main thread may edit files after confirming that user intent authorizes writes.
+Scanner precedes routing. Frontend, Backend, and QA/Infra are peers, not mandatory sequential stages. Every subagent, including auditor, merger, and validator, is read-only. Only the main thread may edit files after successful build-mode validation.
 
 ## Conditional Routing
 
@@ -67,8 +67,9 @@ Scanner precedes routing. Frontend, Backend, and QA/Infra are peers, not mandato
 |---|---|---|
 | Frontend | Evidence shows browser/mobile UI source or a frontend package in scope | CLI, library, backend-only, or unrelated package |
 | Backend | Evidence shows server handlers, services, jobs, API, or backend package in scope | Frontend-only or unrelated package |
-| QA/Infra | Tests, CI, build, deployment, migration, environment setup, or verification affects the request | None of these are relevant |
-| Validator | Files will be written, moved, or substantial changes are proposed | A direct read-only structure summary needs no instruction validation |
+| QA/Infra | Tests, CI, build, deployment, migration, environment setup, or verification affects generated instructions | None of these are relevant |
+| Auditor | Existing instruction artifacts are in scope or command is `check` | A new layout has no existing artifacts |
+| Validator | Candidate artifacts, patches, moves, or removals exist | Merger correctly returns no applicable artifact |
 
 For monorepos, route by requested or detected package. Give agents disjoint evidence scopes; do not make each specialist rescan the repository.
 
@@ -78,7 +79,7 @@ Every subagent returns structured findings, not prose ready to paste. The comple
 
 ```yaml
 schema_version: 1
-agent: scanner | planner | frontend-analyzer | backend-analyzer | qa-analyzer | auditor | merger | change-detector | validator
+agent: scanner | planner | frontend-analyzer | backend-analyzer | qa-analyzer | auditor | merger | validator
 status: ok | not_applicable | partial | failed
 summary: "brief factual summary"
 scope_checked: [<repository-relative paths>]
@@ -113,27 +114,27 @@ The merger produces a candidate file manifest and patch; it never writes files:
 
 1. Groups claims by stable key and destination.
 2. Rejects unsupported, low-confidence, placeholder, and secret-bearing claims.
-3. Resolves conflict only with stronger direct evidence; otherwise reports an unknown.
+3. Resolves a conflict only with stronger direct evidence; otherwise reports an unknown.
 4. Deduplicates ancestor, rule, and nested instructions.
 5. Selects the narrowest correct loading boundary without hiding a global constraint.
 6. Produces a proposed file manifest before writing.
-7. Returns the candidate artifacts and unresolved questions to the main thread.
+7. Returns candidate artifacts and unresolved questions to the main thread.
 
-For both audit and update, the merger emits an explicit candidate diff using create/update/move/remove/unchanged operations and anchored patches. After independent validation, audit returns the proposal without writing; update lets the main thread check authorization again and apply minimal patches as the sole writer.
+When files already exist, the merger emits create/update/move/remove/unchanged artifact operations and anchored patches. Build mode allows the main thread to apply only the validated operations in scope. Check mode returns the same validated proposal without writing.
 
-## Safe Update Algorithm
+## Existing-File Reconciliation
 
-1. Resolve repository root and intent.
-2. Read every existing instruction artifact affected by the scope.
+1. Resolve the repository root, build/check mode, and optional scope.
+2. Read every existing instruction artifact affected by that scope.
 3. Build a claim-to-evidence ledger; mark stale, duplicate, conflicting, unsupported, misplaced, and missing content.
 4. Produce a manifest and minimal diff plan. Preserve unrelated prose, comments, ordering, and formatting.
-5. Patch only affected statements or move them to the correct loading boundary.
+5. In build mode, patch only affected statements or move them to the correct loading boundary.
 6. Re-read every changed file and validate syntax, globs, commands, duplication, and placeholders.
 7. Report created, changed, moved, and intentionally untouched files.
 
-Do not overwrite an existing file merely to normalize its format. Moving content is a semantic change: preserve meaning, name the destination, and remove the conflicting old copy only when update intent authorizes it.
+Do not overwrite an existing file merely to normalize its format. Moving content is a semantic change: preserve meaning, name the destination, and remove the conflicting old copy only when build scope includes both locations.
 
-## Audit Status and Report
+## Check Status and Report
 
 | Status | Meaning |
 |---|---|
@@ -146,7 +147,7 @@ Do not overwrite an existing file merely to normalize its format. Moving content
 | `missing` | A non-obvious, high-value instruction should be documented |
 
 ```markdown
-## Instruction audit
+## Instruction check
 
 | File | Status | Finding | Evidence | Proposed action |
 |---|---|---|---|---|
@@ -161,11 +162,11 @@ Do not overwrite an existing file merely to normalize its format. Moving content
 - <Only questions whose answers would materially change the result.>
 ```
 
-In audit-only mode, propose removals but do not perform them.
+In check mode, propose changes but never perform them.
 
 ## Independent Validation
 
-The validator receives the claim ledger and proposed/applied files. Check that:
+The validator receives the original claim ledger and proposed artifacts or patches. Check that:
 
 - every statement maps to evidence or an explicit user statement;
 - root content is globally applicable;

@@ -1,6 +1,6 @@
 ---
 name: scanner
-description: Inventory repository facts for CLAUDE.md generation or audit. Use first to identify project types, manifests, entry points, commands, and candidate analysis domains without interpreting architecture.
+description: Inventory repository facts for progressive CLAUDE.md building or checking. Use first to identify project types, manifests, entry points, commands, and candidate analysis domains without interpreting architecture.
 tools: Read, Glob, Grep
 model: inherit
 maxTurns: 12

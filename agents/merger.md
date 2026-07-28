@@ -23,7 +23,7 @@ Require Scanner and Planner outputs plus every domain output whose planner route
 3. Exclude low-confidence claims from instructions unless clearly labeled for review.
 4. Keep root `CLAUDE.md` concise and repository-wide. Put path-specific guidance in `.claude/rules/*.md` or nested `CLAUDE.md`; put detailed task workflows in skills.
 5. Do not embed exhaustive trees, dependency lists, generic advice, placeholders, secrets, or facts trivially rediscovered from code.
-6. In update mode, propose a minimal patch and preserve unrelated/user-authored sections.
+6. When instruction artifacts already exist, propose a minimal patch and preserve unrelated/user-authored sections.
 7. Actual writes and user approval belong to the caller, not this agent.
 
 ## Status rules
@@ -57,7 +57,7 @@ claims:
 warnings: []
 conflicts: []
 result:
-  mode: generate | audit | update | record
+  mode: build | check
   artifacts:
     - path: "CLAUDE.md or relative destination"
       operation: create | update | move | remove | unchanged

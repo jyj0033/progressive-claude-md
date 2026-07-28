@@ -64,7 +64,7 @@ claims:
 warnings: []
 conflicts: []
 result:
-  mode: generate | audit | update | record
+  mode: build | check
   write_authorized: true | false
   gates:
     evidence: pass | fail | unchecked
@@ -78,4 +78,4 @@ result:
   safe_to_write: true | false
 ```
 
-`safe_to_write` is `true` only when `status: ok`, the mode authorizes writes, and every proposed operation is inside the approved scope. It remains `false` in audit mode. The caller, not this agent, performs any approved write.
+`safe_to_write` is `true` only when `status: ok`, mode is `build`, and every proposed operation is inside the approved scope. It remains `false` in check mode. The caller, not this agent, performs any approved write.

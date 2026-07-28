@@ -2,8 +2,8 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "progressive-claude-md",
   "displayName": "Progressive CLAUDE.md",
-  "version": "2.0.0",
-  "description": "Generate, audit, and safely update progressively loaded Claude Code project instructions.",
+  "version": "3.0.0",
+  "description": "Generate and safely maintain evidence-backed, progressively loaded Claude Code project instructions.",
   "author": {
     "name": "Progressive CLAUDE.md Contributors"
   },

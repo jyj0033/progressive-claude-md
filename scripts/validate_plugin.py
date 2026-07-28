@@ -40,7 +40,6 @@ EXPECTED_AGENTS = {
     "qa-analyzer",
     "auditor",
     "merger",
-    "change-detector",
     "validator",
 }
 CONTRACT_SNIPPETS = (
@@ -95,11 +94,14 @@ def main() -> int:
             errors.append("SKILL.md must use allowed-tools, not tools")
         if "$ARGUMENTS" not in skill_text:
             errors.append("SKILL.md must consume $ARGUMENTS")
+        if "[check] [scope]" not in skill_meta.get("argument-hint", ""):
+            errors.append("SKILL.md argument-hint must expose only optional check and scope")
         orchestration_snippets = (
             "./**/.claude/rules/**/*.md",
             "@path",
             "claudeMdExcludes",
-            "For audit, return the validated audit report and proposed diff without writing.",
+            "`check` is the only public read-only command",
+            "Fail closed when the first argument is a legacy command word",
         )
         for snippet in orchestration_snippets:
             if snippet not in skill_text:
@@ -158,24 +160,40 @@ def main() -> int:
     if extra_agents:
         errors.append(f"unexpected agents: {extra_agents}")
 
-    merger_text = (ROOT / "agents" / "merger.md").read_text(encoding="utf-8")
-    for snippet in (
-        "operation: create | update | move | remove | unchanged",
-        "patches:",
-        "preserve_unmatched_content: true",
-        "unresolved_questions: []",
-    ):
-        if snippet not in merger_text:
-            errors.append(f"merger patch contract missing: {snippet}")
+    try:
+        merger_text = (ROOT / "agents" / "merger.md").read_text(encoding="utf-8")
+        for snippet in (
+            "mode: build | check",
+            "operation: create | update | move | remove | unchanged",
+            "patches:",
+            "preserve_unmatched_content: true",
+            "unresolved_questions: []",
+        ):
+            if snippet not in merger_text:
+                errors.append(f"merger patch contract missing: {snippet}")
+    except OSError as exc:
+        errors.append(f"invalid merger agent: {exc}")
+
+    try:
+        validator_text = (ROOT / "agents" / "validator.md").read_text(encoding="utf-8")
+        if "mode: build | check" not in validator_text:
+            errors.append("validator contract must use build/check mode")
+        if "It remains `false` in check mode." not in validator_text:
+            errors.append("validator must keep check mode read-only")
+    except OSError as exc:
+        errors.append(f"invalid validator agent: {exc}")
 
     project_types_text = (ROOT / "references" / "project-types.md").read_text(encoding="utf-8")
     if "## Scanner Output Contract" in project_types_text or "- key: package_manager" in project_types_text:
         errors.append("project-types.md contains a competing scanner contract")
 
-    workflows_text = (ROOT / "references" / "workflows.md").read_text(encoding="utf-8")
-    for snippet in ("./**/.claude/rules/**/*.md", "@path", "claudeMdExcludes"):
-        if snippet not in workflows_text:
-            errors.append(f"workflows.md discovery missing: {snippet}")
+    try:
+        workflows_text = (ROOT / "references" / "workflows.md").read_text(encoding="utf-8")
+        for snippet in ("./**/.claude/rules/**/*.md", "@path", "claudeMdExcludes"):
+            if snippet not in workflows_text:
+                errors.append(f"workflows.md discovery missing: {snippet}")
+    except OSError as exc:
+        errors.append(f"invalid workflows reference: {exc}")
 
     secret_policy_files = (
         skill_path,
@@ -184,16 +202,30 @@ def main() -> int:
         ROOT / "references" / "workflows.md",
     )
     for path in secret_policy_files:
-        text = path.read_text(encoding="utf-8")
-        if ".env.example" in text or "tracked example/template may be inspected" in text:
-            errors.append(f"{path.relative_to(ROOT)} weakens the no-env-read policy")
+        try:
+            text = path.read_text(encoding="utf-8")
+            if ".env.example" in text or "tracked example/template may be inspected" in text:
+                errors.append(f"{path.relative_to(ROOT)} weakens the no-env-read policy")
+        except OSError as exc:
+            errors.append(f"invalid secret-policy file {path.relative_to(ROOT)}: {exc}")
 
-    readme_text = (ROOT / "README.md").read_text(encoding="utf-8")
     canonical_command = "/progressive-claude-md:progressive-claude-md"
-    if canonical_command not in readme_text:
-        errors.append("README.md is missing the namespaced invocation")
-    if re.search(r"(?m)^/progressive-claude-md\s+(generate|audit|update|analyze)$", readme_text):
-        errors.append("README.md documents an unnamespaced plugin invocation")
+    legacy_command = re.compile(
+        rf"(?m)^/?(?:progressive-claude-md:)?progressive-claude-md\s+"
+        r"(?:generate|audit|update|analyze)(?:\s|$)"
+    )
+    for name in ("README.md", "README.zh-CN.md"):
+        path = ROOT / name
+        try:
+            readme_text = path.read_text(encoding="utf-8")
+            if not re.search(rf"(?m)^{re.escape(canonical_command)}$", readme_text):
+                errors.append(f"{name} is missing the default namespaced invocation")
+            if not re.search(rf"(?m)^{re.escape(canonical_command)} check$", readme_text):
+                errors.append(f"{name} is missing the namespaced check invocation")
+            if legacy_command.search(readme_text):
+                errors.append(f"{name} documents a removed legacy command mode")
+        except OSError as exc:
+            errors.append(f"invalid {name}: {exc}")
 
     if errors:
         print("Validation failed:", file=sys.stderr)

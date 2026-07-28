@@ -1,12 +1,12 @@
 # Agent Output Contract
 
-Use this schema as the canonical maintenance contract for every plugin subagent. Each agent embeds the same envelope because subagents run in independent contexts; only `agent`, claim topics, and `result` are role-specific.
+Use this schema as the canonical generation/check contract for every plugin subagent. Each agent embeds the same envelope because subagents run in independent contexts; only `agent`, claim topics, and `result` are role-specific.
 
 ## Canonical Envelope
 
 ```yaml
 schema_version: 1
-agent: scanner | planner | frontend-analyzer | backend-analyzer | qa-analyzer | auditor | merger | change-detector | validator
+agent: scanner | planner | frontend-analyzer | backend-analyzer | qa-analyzer | auditor | merger | validator
 status: ok | not_applicable | partial | failed
 summary: "brief, factual summary"
 scope_checked:
@@ -51,9 +51,8 @@ Never replace missing information with a plausible value just to satisfy the sch
 | scanner | detected domains and key files |
 | planner | conditional routes and proposed documents |
 | frontend/backend/qa analyzer | domain findings relevant to placement |
-| auditor | drift findings and proposed actions |
-| change-detector | statement classification and suggested target |
-| merger | mode, candidate manifest, create/update/move/remove/unchanged operations, anchored patches, omitted claims, unresolved questions |
+| auditor | internal existing-file or check findings and proposed actions |
+| merger | build/check mode, candidate manifest, create/update/move/remove/unchanged operations, anchored patches, omitted claims, unresolved questions |
 | validator | mode, write authorization, checks, failures, and `safe_to_write` |
 
 The validator must receive the original evidence ledger as well as merger output. Validation cannot rely only on synthesized candidate prose.
