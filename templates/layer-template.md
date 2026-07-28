@@ -1,139 +1,159 @@
-# Layer Template Reference
+# Progressive Claude Code Layout Templates
 
-多文件渐进结构模板。**禁止**把 L2–L4 写进同一个 CLAUDE.md。
+Use these templates only after evidence collection. They model Claude Code's actual loading boundaries; they are not four headings in one always-loaded file.
 
-## 落盘布局
+## Contents
 
-```
-CLAUDE.md                      # L1 only
-docs/ai/architecture.md        # L2
-docs/ai/conventions.md         # L3
-docs/ai/ops.md                 # L4
-```
+- [Placement decision](#placement-decision)
+- [Root CLAUDE.md](#root-claudemd)
+- [Path-scoped rule](#path-scoped-rule)
+- [Nested CLAUDE.md](#nested-claudemd)
+- [Task skill proposal](#task-skill-proposal)
+- [Candidate manifest](#proposed-file-manifest)
+- [Final quality gate](#final-quality-gate)
 
----
+## Placement Decision
 
-## L1: CLAUDE.md
+| Content | Destination | Loading behavior |
+|---|---|---|
+| Commands and constraints needed for nearly every task | `./CLAUDE.md` or `./.claude/CLAUDE.md` | Loaded at session start |
+| Instructions for matching files or directories | `.claude/rules/<topic>.md` with `paths` | Loaded when Claude works with matching files |
+| Instructions owned by one package/subtree | `<subtree>/CLAUDE.md` | Discovered when Claude reads in that subtree |
+| A multi-step task or checklist | `.claude/skills/<task>/SKILL.md` | Loaded when invoked or relevant |
+| Personal, project-local preferences | `./CLAUDE.local.md` | Loaded at session start; keep out of version control |
 
-```markdown
-# [Project Name]
+Do not use `@import` to claim deferred loading: imports are expanded into context with their containing `CLAUDE.md`.
 
-[One sentence]
+Create only files supported by repository evidence. Omit empty headings, placeholders, generic advice, dependency inventories, and directory trees that Claude can discover directly.
 
-## Tech Stack
-- Frontend: [framework]
-- Backend: [framework]
-- Database: [database]
-- Package Manager: [npm/yarn/pnpm]
+## Root `CLAUDE.md`
 
-## Quick Commands
-```bash
-[install]
-[dev]
-[build]
-```
-
-## Progressive Docs（按需 Read，勿整份粘贴进 CLAUDE.md）
-
-| 何时 | 文件 |
-|------|------|
-| 理解结构 / 改模块 / 数据流 | `docs/ai/architecture.md` |
-| 写代码 / 命名 / API 约定 | `docs/ai/conventions.md` |
-| 测试 / 部署 / 环境 / 坑 | `docs/ai/ops.md` |
-
-**指令给 Agent：** 仅在当前任务需要时用 Read 打开上表路径。
-```
-
----
-
-## L2: docs/ai/architecture.md
+Target a concise file, normally well below 200 lines. Include only globally applicable, non-obvious instructions.
 
 ```markdown
-# Architecture (L2)
+# <project name>
 
-## Project Structure
+<One evidence-backed sentence only when it helps orient work.>
 
+## Commands
+
+- `<exact command>` — <purpose and required working directory if non-root>
+
+## Project rules
+
+- <non-obvious global constraint with repository evidence>
+- <where to make a common category of change, if not discoverable>
+
+## Verification
+
+- <minimum exact verification command for a typical change>
+
+## Gotchas
+
+- <confirmed failure mode or invariant; omit this section when none is evidenced>
 ```
-[directory tree - max 3 levels]
-```
 
-## Core Modules
+Never emit example facts such as a framework, Node version, naming convention, API shape, browser limitation, or command unless the repository or user explicitly establishes it.
 
-| Module | Purpose |
-|--------|---------|
-| [path] | [description] |
+## Path-Scoped Rule
 
-## Data Flow
-
-[How data flows - one paragraph]
-```
-
----
-
-## L3: docs/ai/conventions.md
+Use a narrow, repository-relative glob. A rule without `paths` loads unconditionally and is therefore not progressive.
 
 ```markdown
-# Conventions (L3)
-
-## Naming Conventions
-- Components: PascalCase
-- Utils: camelCase
-- Constants: SCREAMING_SNAKE_CASE
-
-## File Organization
-- One component per file
-- Colocation for tests when present
-
-## API Patterns
-- RESTful: GET/POST/PUT/DELETE
-- Error: `{ error: string }`
-```
-
+---
+paths:
+  - "<verified/subtree/**/*.{ext1,ext2}>"
 ---
 
-## L4: docs/ai/ops.md
+# <Topic> rules
+
+- <specific, evidence-backed instruction>
+- Run `<exact targeted check>` after changing matching files.
+```
+
+Prefer one coherent topic per file, for example `frontend-components.md`, `api-handlers.md`, or `database-migrations.md`. Do not create a path rule when the same instruction applies globally.
+
+## Nested `CLAUDE.md`
+
+Use this for a cohesive package or subtree with its own commands, architecture, or constraints. The nested file supplements ancestor instructions; it does not override them automatically.
 
 ```markdown
-# Ops (L4)
+# <package or subtree name>
 
-## Testing
-- Framework: [Vitest/...]
-- Commands: `npm test`
+## Scope
 
-## Run / Deploy
-```bash
-[build]
-[start]
+- Applies to `<repository-relative subtree>/`.
+
+## Commands
+
+- From `<working directory>`, run `<exact command>` to <purpose>.
+
+## Local conventions
+
+- <confirmed package-specific convention>
+
+## Verification
+
+- `<exact targeted command>`
 ```
 
-## Environment
-| Var | Meaning | Default |
-|-----|---------|---------|
-| ... | ... | ... |
+Do not duplicate root instructions. If several unrelated path patterns share a rule, prefer a path-scoped rule over multiple nested files.
 
-## Constraints & Gotchas ⚠️
-- Node version: ...
-- Known issues: ...
+## Task Skill Proposal
+
+Procedures such as releases, deployments, migrations, incident response, or complex test setup belong in a task skill when they should not consume every session's context. Generate a skill only when explicitly requested; otherwise propose it in the plan.
+
+```text
+.claude/skills/<task-name>/
+├── SKILL.md
+└── references/        # only when the procedure needs supporting detail
 ```
 
+```markdown
+---
+name: <task-name>
+description: <what the procedure does and concrete situations that should trigger it>
 ---
 
-## Token Budget
+# <Task title>
 
-| Layer | File | Target | Hard Limit |
-|-------|------|--------|------------|
-| L1 | CLAUDE.md | ~100 | 150 |
-| L2 | architecture.md | ~300 | 400 |
-| L3 | conventions.md | ~400 | 500 |
-| L4 | ops.md | ~500+ | 800 |
+1. <verified step>
+2. <verified step>
+3. Run `<exact validation command>`.
 
----
+Stop and ask the user when <confirmed irreversible or production-impacting boundary>.
+```
 
-## Placement Guide
+## Proposed File Manifest
 
-| Type | L1 | L2 | L3 | L4 |
-|------|----|----|----|----|
-| 一句话/栈/命令 | ✓ | | | |
-| 目录/模块/数据流 | | ✓ | | |
-| 命名/API 约定 | | | ✓ | |
-| 测试/部署/环境/坑 | | | | ✓ |
+Before writing, present an explicit manifest. An empty category is omitted.
+
+```yaml
+files:
+  - path: CLAUDE.md
+    action: create | update
+    reason: globally applicable commands and constraints
+    evidence: [<repository-relative paths>]
+  - path: .claude/rules/<topic>.md
+    action: create | update
+    paths: [<globs>]
+    reason: instructions apply only to matching files
+    evidence: [<repository-relative paths>]
+  - path: <subtree>/CLAUDE.md
+    action: create | update
+    reason: package-owned instructions
+    evidence: [<repository-relative paths>]
+proposals:
+  - path: .claude/skills/<task>/SKILL.md
+    reason: task procedure should load only on demand
+```
+
+## Final Quality Gate
+
+- Every statement is supported by evidence or an explicit user instruction.
+- Root content is globally applicable and concise.
+- Every `.claude/rules` file that is intended to be conditional has valid `paths` frontmatter.
+- Nested files contain only subtree-specific guidance.
+- No `@import` is described as lazy loading.
+- No placeholders, empty headings, example defaults, secrets, or duplicated instructions remain.
+- Commands preserve exact spelling and working directory.

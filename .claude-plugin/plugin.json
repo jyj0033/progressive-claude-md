@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "progressive-claude-md",
+  "displayName": "Progressive CLAUDE.md",
+  "version": "2.0.0",
+  "description": "Generate, audit, and safely update progressively loaded Claude Code project instructions.",
+  "author": {
+    "name": "Progressive CLAUDE.md Contributors"
+  },
+  "keywords": [
+    "claude-md",
+    "project-instructions",
+    "progressive-disclosure",
+    "subagents"
+  ]
+}
