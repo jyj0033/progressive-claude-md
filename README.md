@@ -1,5 +1,7 @@
 # Progressive CLAUDE.md
 
+English | [简体中文](README.zh-CN.md)
+
 A Claude Code CLI plugin that generates, audits, and safely updates project instructions using repository evidence and Claude Code's actual loading boundaries.
 
 ## What changed in v2
